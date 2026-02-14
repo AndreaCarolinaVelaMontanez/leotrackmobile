@@ -33,6 +33,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: ['expo-router', 'expo-localization', 'expo-font', 'expo-splash-screen'],
   extra: {
-    apiUrl: process.env.API_URL || '',
+    apiUrl: process.env.API_URL || 'https://leotrackmobile-production.up.railway.app',
   },
 });
