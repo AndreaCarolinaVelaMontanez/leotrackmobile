@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookSource {
+  GOOGLE
+  MANUAL
+}
+
+enum ReadingStatus {
+  READING
+  FINISHED
+  WISHLIST
+  ABANDONED
+}
+
+enum Language {
+  EN
+  ES
+}
+
+enum Theme {
+  LIGHT
+  DARK
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  authSessions AuthSession[]
+  userBooks    UserBook[]
+  settings     UserSettings?
+
+  @@map("users")
+}
+
+model AuthSession {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_sessions")
+}
+
+model Book {
+  id            String     @id @default(uuid())
+  title         String
+  author        String
+  category      String?
+  coverUrl      String?    @map("cover_url")
+  pageCount     Int?       @map("page_count")
+  language      String?
+  googleBookId  String?    @unique @map("google_book_id")
+  source        BookSource @default(MANUAL)
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  userBooks UserBook[]
+
+  @@map("books")
+}
+
+model UserBook {
+  id          String        @id @default(uuid())
+  userId      String        @map("user_id")
+  bookId      String        @map("book_id")
+  status      ReadingStatus @default(WISHLIST)
+  currentPage Int           @default(0) @map("current_page")
+  totalMinutes Int          @default(0) @map("total_minutes")
+  startedAt   DateTime?     @map("started_at")
+  finishedAt  DateTime?     @map("finished_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book            Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  progressLogs    ProgressLog[]
+  readingSessions ReadingSession[]
+
+  @@unique([userId, bookId])
+  @@map("user_books")
+}
+
+model ProgressLog {
+  id         String   @id @default(uuid())
+  userBookId String   @map("user_book_id")
+  pagesRead  Int      @map("pages_read")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  userBook UserBook @relation(fields: [userBookId], references: [id], onDelete: Cascade)
+
+  @@map("progress_logs")
+}
+
+model ReadingSession {
+  id              String   @id @default(uuid())
+  userBookId      String   @map("user_book_id")
+  startedAt       DateTime @map("started_at")
+  endedAt         DateTime @map("ended_at")
+  durationMinutes Int      @map("duration_minutes")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  userBook UserBook @relation(fields: [userBookId], references: [id], onDelete: Cascade)
+
+  @@map("reading_sessions")
+}
+
+model UserSettings {
+  id       String   @id @default(uuid())
+  userId   String   @unique @map("user_id")
+  language Language @default(EN)
+  theme    Theme    @default(LIGHT)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}

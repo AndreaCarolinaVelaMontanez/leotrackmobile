@@ -1,0 +1,46 @@
+export const lightTheme = {
+  bgPrimary: '#F5F5F7',
+  bgSecondary: '#EEEFF1',
+  bgTertiary: '#E5E6E8',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
+  accentPrimary: '#6C63FF',
+  accentHover: '#5A52D5',
+  borderColor: '#D0D4DA',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  radiusSm: 8,
+  radiusMd: 12,
+  radiusLg: 16,
+  // Badge colors
+  badgeReading: { bg: '#DBEAFE', text: '#1E40AF' },
+  badgeFinished: { bg: '#D1FAE5', text: '#065F46' },
+  badgeWishlist: { bg: '#FEF3C7', text: '#92400E' },
+  badgeAbandoned: { bg: '#FEE2E2', text: '#991B1B' },
+};
+
+export const darkTheme: typeof lightTheme = {
+  bgPrimary: '#0F172A',
+  bgSecondary: '#1E293B',
+  bgTertiary: '#334155',
+  textPrimary: '#F1F5F9',
+  textSecondary: '#CBD5E1',
+  textTertiary: '#94A3B8',
+  accentPrimary: '#7C74FF',
+  accentHover: '#6C63FF',
+  borderColor: '#334155',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  radiusSm: 8,
+  radiusMd: 12,
+  radiusLg: 16,
+  badgeReading: { bg: '#1E3A8A', text: '#BFDBFE' },
+  badgeFinished: { bg: '#064E3B', text: '#A7F3D0' },
+  badgeWishlist: { bg: '#78350F', text: '#FDE68A' },
+  badgeAbandoned: { bg: '#7F1D1D', text: '#FECACA' },
+};
+
+export type Theme = typeof lightTheme;
