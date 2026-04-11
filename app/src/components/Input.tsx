@@ -7,11 +7,13 @@ interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   onClear?: () => void;
+  searchIcon?: boolean;
 }
 
-export function Input({ label, error, style, secureTextEntry, onClear, ...props }: InputProps) {
+export function Input({ label, error, style, secureTextEntry, onClear, searchIcon, ...props }: InputProps) {
   const { theme } = useTheme();
   const [hidden, setHidden] = useState(true);
+  const [focused, setFocused] = useState(false);
   const isPassword = secureTextEntry !== undefined && secureTextEntry;
   const showClear = onClear && typeof props.value === 'string' && props.value.length > 0;
 
@@ -21,6 +23,11 @@ export function Input({ label, error, style, secureTextEntry, onClear, ...props 
         <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>
       )}
       <View style={styles.inputRow}>
+        {searchIcon && (
+          <View style={styles.searchIconBox}>
+            <Ionicons name="search-outline" size={18} color={theme.textTertiary} />
+          </View>
+        )}
         <TextInput
           style={[
             styles.input,
@@ -28,12 +35,16 @@ export function Input({ label, error, style, secureTextEntry, onClear, ...props 
               backgroundColor: theme.bgPrimary,
               color: theme.textPrimary,
               borderColor: error ? theme.error : theme.borderColor,
+              paddingLeft: searchIcon ? 44 : 16,
               paddingRight: isPassword || showClear ? 48 : 16,
             },
             style,
           ]}
+          placeholder={focused ? '' : props.placeholder}
           placeholderTextColor={theme.textTertiary}
           secureTextEntry={isPassword && hidden}
+          onFocus={(e) => { setFocused(true); props.onFocus?.(e); }}
+          onBlur={(e) => { setFocused(false); props.onBlur?.(e); }}
           {...props}
         />
         {isPassword && (
@@ -75,8 +86,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '300',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
     marginBottom: 8,
   },
   inputRow: {
@@ -96,6 +109,14 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
+  },
+  searchIconBox: {
+    position: 'absolute',
+    left: 14,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    zIndex: 1,
   },
   error: {
     fontSize: 12,

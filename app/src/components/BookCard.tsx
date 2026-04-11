@@ -1,4 +1,5 @@
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 import { ProgressBar } from './ProgressBar';
 import { Badge } from './Badge';
@@ -45,11 +46,11 @@ export function BookCard({ userBook, onPress }: BookCardProps) {
       {book.coverUrl ? (
         <Image source={{ uri: book.coverUrl }} style={styles.cover} />
       ) : (
-        <View
-          style={[
-            styles.cover,
-            { backgroundColor: gradient[0] },
-          ]}
+        <LinearGradient
+          colors={gradient as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.cover}
         />
       )}
 

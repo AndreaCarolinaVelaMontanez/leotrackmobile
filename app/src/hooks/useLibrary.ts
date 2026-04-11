@@ -1,10 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as libraryApi from '../api/library';
 
-export function useLibraryList(status?: string) {
+export function useLibraryList(status?: string, year?: number) {
   return useQuery({
-    queryKey: ['library', status],
-    queryFn: () => libraryApi.getLibrary(status),
+    queryKey: ['library', status, year],
+    queryFn: () => libraryApi.getLibrary(status, year),
+  });
+}
+
+export function useLibraryYears() {
+  return useQuery({
+    queryKey: ['library-years'],
+    queryFn: () => libraryApi.getLibraryYears(),
+    staleTime: 60000,
   });
 }
 
@@ -12,10 +20,11 @@ export function useAddToLibrary() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ bookId, status }: { bookId: string; status?: string }) =>
-      libraryApi.addToLibrary(bookId, status),
+    mutationFn: ({ bookId, status, finishedYear, pageCount }: { bookId: string; status?: string; finishedYear?: number; pageCount?: number }) =>
+      libraryApi.addToLibrary(bookId, status, finishedYear, pageCount),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['library'] });
+      queryClient.invalidateQueries({ queryKey: ['library-years'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
     },
   });
@@ -54,6 +63,7 @@ export function useDeleteUserBook() {
     mutationFn: (userBookId: string) => libraryApi.deleteUserBook(userBookId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['library'] });
+      queryClient.invalidateQueries({ queryKey: ['library-years'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
     },
   });

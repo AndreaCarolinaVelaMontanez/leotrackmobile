@@ -16,6 +16,11 @@ export default function Index() {
             resolve();
             unsub();
           });
+          // Segunda verificación para cerrar la ventana de la race condition
+          if (useAuthStore.persist.hasHydrated()) {
+            unsub();
+            resolve();
+          }
         });
       }
       setIsReady(true);

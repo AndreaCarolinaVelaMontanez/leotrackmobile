@@ -3,9 +3,9 @@ import Constants from 'expo-constants';
 import { useAuthStore } from '../stores/authStore';
 
 const devHost = Constants.expoGoConfig?.debuggerHost?.split(':')[0] ?? 'localhost';
-const prodUrl = Constants.expoConfig?.extra?.apiUrl || 'https://api.leotrack.com';
+const prodUrl = Constants.expoConfig?.extra?.apiUrl || 'https://leotrackmobile-production.up.railway.app';
 const API_URL = __DEV__
-  ? `http://${devHost}:3000`
+  ? `http://${devHost}:4500`
   : prodUrl;
 
 const client = axios.create({

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import * as WebBrowser from 'expo-web-browser';
-import * as Localization from 'expo-localization';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Google from 'expo-auth-session/providers/google';
-import { useAuthStore } from '../../src/stores/authStore';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import * as authApi from '../../src/api/auth';
@@ -27,87 +23,45 @@ const INPUT_BORDER = '#E2DCE8';
 const TEXT_DARK = '#1C1024';
 const TEXT_MUTED = '#8B7A96';
 const PLACEHOLDER = '#B0A0BA';
+const GRADIENT: [string, string, string] = ['#2a0040', '#490a66', '#7a2d99'];
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-WebBrowser.maybeCompleteAuthSession();
-
-export default function LoginScreen() {
+export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const setAuth = useAuthStore((s) => s.setAuth);
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [sent, setSent] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    scopes: ['openid', 'profile', 'email'],
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const idToken =
-        response.authentication?.idToken ?? response.params?.id_token;
-      if (idToken) {
-        handleGoogleToken(idToken);
-      } else {
-        setErrorMsg(t('auth.googleError'));
-      }
-    } else if (response?.type === 'error') {
-      setErrorMsg(t('auth.googleError'));
+  const handleSend = async () => {
+    if (!email.trim()) return;
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setErrorMsg(t('auth.invalidEmail'));
+      return;
     }
-  }, [response]);
-
-  const handleGoogleToken = async (idToken: string) => {
-    setGoogleLoading(true);
-    setErrorMsg('');
-    try {
-      const country = Localization.getLocales()[0]?.regionCode ?? undefined;
-      const { user, token } = await authApi.googleLogin(idToken, country);
-      setAuth(token, user);
-    } catch {
-      setErrorMsg(t('auth.googleError'));
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const handleLogin = async () => {
-    if (!email || !password) return;
     setErrorMsg('');
     setLoading(true);
     try {
-      const { user, token } = await authApi.login(email.trim(), password);
-      setAuth(token, user);
+      await authApi.forgotPassword(email.trim());
+      setSent(true);
     } catch (error: any) {
-      if (error?.response?.status === 403) {
-        setErrorMsg(t('auth.emailNotVerified'));
-      } else if (error?.response?.status === 429) {
+      if (error?.response?.status === 429) {
         setErrorMsg(t('auth.tooManyAttempts'));
       } else {
-        setErrorMsg(t('auth.loginError'));
+        setErrorMsg(t('common.unknownError'));
       }
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#2a0040' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ZONA SUPERIOR: color de marca */}
+  if (sent) {
+    return (
+      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#2a0040' }}>
         <LinearGradient
-          colors={['#2a0040', '#490a66', '#7a2d99']}
+          colors={GRADIENT}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.brandZone}
@@ -120,12 +74,72 @@ export default function LoginScreen() {
             />
           </View>
           <Text style={styles.appName}>{t('app.name')}</Text>
-          <Text style={styles.tagline}>{t('auth.trackJourney')}</Text>
+          <Text style={styles.tagline}>{t('forgotPassword.title')}</Text>
+        </LinearGradient>
+
+        <View style={styles.card}>
+          <Text style={styles.successTitle}>{t('forgotPassword.successTitle')}</Text>
+          <Text style={styles.successText}>{t('forgotPassword.successText')}</Text>
+
+          <TouchableOpacity
+            onPress={() => router.push('/(auth)/reset-password')}
+            activeOpacity={0.85}
+            style={{ marginTop: 32, marginBottom: 12, borderRadius: 8, overflow: 'hidden' }}
+          >
+            <LinearGradient
+              colors={GRADIENT}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientButton}
+            >
+              <Text style={styles.gradientButtonText}>{t('forgotPassword.goToReset')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={styles.secondaryZone}>
+            <Button
+              title={t('forgotPassword.backToLogin')}
+              onPress={() => router.back()}
+              variant="text"
+              textStyle={{ color: BG, fontSize: 11, fontWeight: '300', letterSpacing: 1.5, textDecorationLine: 'underline' }}
+            />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#2a0040' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ZONA SUPERIOR: degradado de marca */}
+        <LinearGradient
+          colors={GRADIENT}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.brandZone}
+        >
+          <View style={styles.iconWrapper}>
+            <Image
+              source={require('../../assets/icon2.png')}
+              style={styles.icon}
+              resizeMode="cover"
+            />
+          </View>
+          <Text style={styles.appName}>{t('app.name')}</Text>
+          <Text style={styles.tagline}>{t('forgotPassword.title')}</Text>
         </LinearGradient>
 
         {/* ZONA INFERIOR: tarjeta blanca */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('auth.signInTitle')}</Text>
+          <Text style={styles.subtitle}>{t('forgotPassword.subtitle')}</Text>
 
           <Input
             placeholder={t('auth.emailPlaceholder')}
@@ -137,18 +151,6 @@ export default function LoginScreen() {
             style={{ backgroundColor: INPUT_BG, color: TEXT_DARK, borderColor: INPUT_BORDER, borderWidth: 1.5, fontWeight: '300', letterSpacing: 0.5 }}
           />
 
-          <Input
-            placeholder={t('auth.passwordPlaceholder')}
-            value={password}
-            onChangeText={(v) => { setPassword(v); setErrorMsg(''); }}
-            secureTextEntry
-            autoCorrect={false}
-            autoComplete="off"
-            textContentType="password"
-            placeholderTextColor={PLACEHOLDER}
-            style={{ backgroundColor: INPUT_BG, color: TEXT_DARK, borderColor: INPUT_BORDER, borderWidth: 1.5, fontWeight: '300', letterSpacing: 0.5 }}
-          />
-
           {errorMsg ? (
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{errorMsg}</Text>
@@ -156,13 +158,13 @@ export default function LoginScreen() {
           ) : null}
 
           <TouchableOpacity
-            onPress={handleLogin}
+            onPress={handleSend}
             disabled={loading}
             activeOpacity={0.85}
             style={{ marginTop: 4, marginBottom: 12, borderRadius: 8, overflow: 'hidden' }}
           >
             <LinearGradient
-              colors={['#2a0040', '#490a66', '#7a2d99']}
+              colors={GRADIENT}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.gradientButton}
@@ -170,37 +172,17 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.gradientButtonText}>{t('auth.signIn')}</Text>
+                <Text style={styles.gradientButtonText}>{t('forgotPassword.sendInstructions')}</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Botón Google */}
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => promptAsync()}
-            disabled={!request || googleLoading}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.googleIcon}>G</Text>
-            <Text style={[styles.googleLabel, { color: TEXT_DARK }]}>
-              {t('auth.signInWithGoogle')}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Secundario */}
           <View style={styles.secondaryZone}>
             <Button
-              title={t('forgotPassword.link')}
-              onPress={() => router.push('/(auth)/forgot-password')}
+              title={t('forgotPassword.backToLogin')}
+              onPress={() => router.back()}
               variant="text"
               textStyle={{ color: TEXT_MUTED, textDecorationLine: 'underline', fontSize: 11, fontWeight: '300', letterSpacing: 1.5 }}
-            />
-            <Button
-              title={t('auth.createAnAccount')}
-              onPress={() => router.push('/(auth)/register')}
-              variant="text"
-              textStyle={{ color: BG, fontSize: 11, fontWeight: '300', letterSpacing: 1.5, textDecorationLine: 'underline' }}
             />
           </View>
         </View>
@@ -245,7 +227,7 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: 10,
     fontWeight: '300',
-    color: 'rgba(255,255,255,0.65)',
+    color: 'rgba(255,255,255,0.85)',
     marginTop: 8,
     letterSpacing: 2.5,
     textTransform: 'uppercase',
@@ -260,36 +242,14 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 48,
   },
-  cardTitle: {
-    fontSize: 13,
-    fontWeight: '300',
-    color: TEXT_DARK,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: INPUT_BORDER,
-    backgroundColor: INPUT_BG,
-    borderRadius: 10,
-    paddingVertical: 14,
-    marginBottom: 8,
-    gap: 10,
-  },
-  googleIcon: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#4285F4',
-  },
-  googleLabel: {
+  subtitle: {
     fontSize: 11,
     fontWeight: '300',
+    color: TEXT_MUTED,
     letterSpacing: 1.5,
+    lineHeight: 20,
+    marginBottom: 24,
+    textAlign: 'center',
     textTransform: 'uppercase',
   },
   gradientButton: {
@@ -307,7 +267,6 @@ const styles = StyleSheet.create({
   secondaryZone: {
     alignItems: 'center',
     marginTop: 8,
-    gap: 4,
   },
   errorBox: {
     backgroundColor: '#FFF0F0',
@@ -325,5 +284,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     lineHeight: 16,
     textAlign: 'center',
+  },
+  successTitle: {
+    fontSize: 13,
+    fontWeight: '300',
+    color: TEXT_DARK,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  successText: {
+    fontSize: 11,
+    fontWeight: '300',
+    color: TEXT_MUTED,
+    letterSpacing: 1,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });

@@ -6,7 +6,8 @@ import {
   Modal,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
@@ -30,30 +31,43 @@ export function RegisterPagesModal({
   const { t } = useTranslation();
   const [pages, setPages] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleClose = () => {
+    setPages('');
+    setErrorMsg('');
+    onClose();
+  };
 
   const handleSave = async () => {
     const num = parseInt(pages, 10);
-    if (isNaN(num) || num <= 0) {
-      Alert.alert(t('common.error'), t('common.invalidPageCount'));
+    if (isNaN(num) || num <= 0 || num > 3000) {
+      setErrorMsg(t('common.invalidPageCount'));
       return;
     }
+    setErrorMsg('');
     setLoading(true);
     try {
       await onSave(num);
       setPages('');
       onClose();
-    } catch (error: any) {
-      Alert.alert(t('common.error'), error.response?.data?.error || t('common.failedSaveProgress'));
+    } catch {
+      setErrorMsg(t('common.failedSaveProgress'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <TouchableWithoutFeedback onPress={handleClose}>
+          <View style={StyleSheet.absoluteFillObject} />
+        </TouchableWithoutFeedback>
+        <TouchableWithoutFeedback>
             <View style={[styles.content, { backgroundColor: theme.bgPrimary }]}>
               <View style={[styles.handle, { backgroundColor: theme.borderColor }]} />
               <Text style={[styles.title, { color: theme.textPrimary }]}>
@@ -62,7 +76,7 @@ export function RegisterPagesModal({
 
               <Input
                 label={t('registerPages.pagesRead')}
-                placeholder="25"
+                placeholder={t('registerPages.pagesReadPlaceholder')}
                 value={pages}
                 onChangeText={setPages}
                 keyboardType="numeric"
@@ -72,6 +86,12 @@ export function RegisterPagesModal({
                 {t('registerPages.currentProgress', { pages: currentPage })}
               </Text>
 
+              {errorMsg ? (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorText}>{errorMsg}</Text>
+                </View>
+              ) : null}
+
               <Button
                 title={t('registerPages.save')}
                 onPress={handleSave}
@@ -79,8 +99,7 @@ export function RegisterPagesModal({
               />
             </View>
           </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -90,6 +109,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
+    position: 'relative',
   },
   content: {
     borderTopLeftRadius: 16,
@@ -111,6 +131,22 @@ const styles = StyleSheet.create({
   },
   progress: {
     fontSize: 13,
-    marginBottom: 24,
+    marginBottom: 12,
+  },
+  errorBox: {
+    backgroundColor: '#FFF0F0',
+    borderWidth: 1,
+    borderColor: '#F5C2C7',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  errorText: {
+    fontSize: 12,
+    fontWeight: '300',
+    color: '#842029',
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
 });

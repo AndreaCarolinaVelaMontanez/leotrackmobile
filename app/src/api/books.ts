@@ -13,6 +13,7 @@ export async function createManualBook(input: {
   pageCount: number;
   language?: string;
   status?: string;
+  finishedYear?: number;
 }): Promise<UserBook> {
   const { data } = await client.post('/books/manual', input);
   return data;

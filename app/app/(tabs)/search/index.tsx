@@ -6,10 +6,15 @@ import {
   StyleSheet,
   Image,
   ActivityIndicator,
-  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
 } from 'react-native';
+import { Toast, useToast } from '../../../src/components/Toast';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, LinearGradient as SvgGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../src/theme/ThemeContext';
 import { useSearch } from '../../../src/hooks/useSearch';
@@ -17,6 +22,7 @@ import { useAddToLibrary } from '../../../src/hooks/useLibrary';
 import { Input } from '../../../src/components/Input';
 import { Button } from '../../../src/components/Button';
 import { EmptyState } from '../../../src/components/EmptyState';
+import { AddToLibraryModal } from '../../../src/components/AddToLibraryModal';
 import { Book } from '../../../src/types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -28,8 +34,10 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [addedBooks, setAddedBooks] = useState<Set<string>>(new Set());
+  const [modalBook, setModalBook] = useState<Book | null>(null);
+  const { toast, showToast } = useToast();
 
-  const { data: results, isLoading } = useSearch(debouncedQuery);
+  const { data: results, isLoading, isError, error } = useSearch(debouncedQuery);
   const addToLibrary = useAddToLibrary();
 
   useEffect(() => {
@@ -47,12 +55,18 @@ export default function SearchScreen() {
     }, [])
   );
 
-  const handleAdd = async (book: Book) => {
+  const handleAdd = (book: Book) => {
+    setModalBook(book);
+  };
+
+  const handleModalConfirm = async (status: string, finishedYear?: number, pageCount?: number) => {
+    if (!modalBook) return;
     try {
-      await addToLibrary.mutateAsync({ bookId: book.id });
-      setAddedBooks((prev) => new Set(prev).add(book.id));
-    } catch (error: any) {
-      Alert.alert(t('common.error'), error.response?.data?.error || t('common.failedAddBook'));
+      await addToLibrary.mutateAsync({ bookId: modalBook.id, status, finishedYear, pageCount });
+      setAddedBooks((prev) => new Set(prev).add(modalBook.id));
+      setModalBook(null);
+    } catch {
+      showToast(t('common.failedAddBook'), 'error');
     }
   };
 
@@ -69,7 +83,7 @@ export default function SearchScreen() {
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={styles.cover} />
         ) : (
-          <View style={[styles.cover, { backgroundColor: '#667eea' }]} />
+          <View style={[styles.cover, { backgroundColor: theme.bgTertiary }]} />
         )}
         <View style={styles.info}>
           <Text
@@ -104,49 +118,113 @@ export default function SearchScreen() {
         </Text>
       </View>
 
-      <View style={styles.container}>
-        <Input
-          placeholder={t('search.placeholder')}
-          value={query}
-          onChangeText={setQuery}
-          onClear={() => setQuery('')}
-          autoCapitalize="none"
-        />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {debouncedQuery.length < 2 ? (
+          <View style={styles.centeredContainer}>
+            <Text style={[styles.appName, { color: theme.accentPrimary }]}>
+              LeoTrack
+            </Text>
+            <View style={styles.searchArea}>
 
-        <Button
-          title={t('search.addManually')}
-          onPress={() => router.push('/(tabs)/search/add-manual')}
-          variant="secondary"
-          style={{ marginBottom: 24 }}
-        />
-
-        {debouncedQuery.length >= 2 && (
-          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
-            {t('search.results')}
-          </Text>
-        )}
-
-        {isLoading ? (
-          <ActivityIndicator style={{ marginTop: 20 }} color={theme.accentPrimary} />
+              <Input
+                placeholder={t('search.placeholder')}
+                value={query}
+                onChangeText={setQuery}
+                onClear={() => setQuery('')}
+                autoCapitalize="none"
+                searchIcon
+                style={{ fontWeight: '300', letterSpacing: 2 }}
+              />
+              <TouchableOpacity onPress={() => router.push('/(tabs)/search/add-manual')} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={['#2a0040', '#490a66', '#7a2d99']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientBtn}
+                >
+                  <Text style={styles.gradientBtnText}>{t('search.addManually')}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.brandFooter}>
+              <Svg height={22} width={140}>
+                <Defs>
+                  <SvgGradient id="greenGrad" x1="0" y1="0" x2="1" y2="0">
+                    <Stop offset="0" stopColor="#1b5e20" />
+                    <Stop offset="1" stopColor="#81c784" />
+                  </SvgGradient>
+                </Defs>
+                <SvgText
+                  fill="url(#greenGrad)"
+                  fontSize="11"
+                  fontWeight="bold"
+                  x="70"
+                  y="16"
+                  textAnchor="middle"
+                  letterSpacing="1"
+                >
+                  By MountLion
+                </SvgText>
+              </Svg>
+            </View>
+          </View>
         ) : (
-          <FlatList
-            data={results}
-            keyExtractor={(item) => item.id}
-            renderItem={renderSearchResult}
-            ListEmptyComponent={
-              debouncedQuery.length >= 2 ? (
-                <EmptyState
-                  icon="search-outline"
-                  title={t('search.noResults')}
-                  text={t('search.noResultsText')}
-                  actionLabel={t('search.addManually')}
-                  onAction={() => router.push('/(tabs)/search/add-manual')}
-                />
-              ) : null
-            }
-          />
+          <View style={styles.container}>
+            <View style={styles.searchArea}>
+              <Input
+                placeholder={t('search.placeholder')}
+                value={query}
+                onChangeText={setQuery}
+                onClear={() => setQuery('')}
+                autoCapitalize="none"
+                searchIcon
+                style={{ fontWeight: '300', letterSpacing: 2 }}
+              />
+            </View>
+
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+              {t('search.results')}
+            </Text>
+
+            {isError && (
+              <Text style={[styles.errorText, { color: theme.textSecondary }]}>
+                {t('common.error')}
+              </Text>
+            )}
+
+            {isLoading ? (
+              <ActivityIndicator style={{ marginTop: 20 }} color={theme.accentPrimary} />
+            ) : (
+              <FlatList
+                data={results}
+                keyExtractor={(item) => item.id}
+                renderItem={renderSearchResult}
+                ListEmptyComponent={
+                  <EmptyState
+                    icon="search-outline"
+                    title={t('search.noResults')}
+                    text={t('search.noResultsText')}
+                    actionLabel={t('search.addManually')}
+                    onAction={() => router.push('/(tabs)/search/add-manual')}
+                  />
+                }
+              />
+            )}
+          </View>
         )}
-      </View>
+      </KeyboardAvoidingView>
+
+      <AddToLibraryModal
+        visible={!!modalBook}
+        book={modalBook}
+        onClose={() => setModalBook(null)}
+        onConfirm={handleModalConfirm}
+        loading={addToLibrary.isPending}
+      />
+      <Toast toast={toast} />
     </SafeAreaView>
   );
 }
@@ -159,19 +237,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '300',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textAlign: 'center',
+    marginBottom: 56,
+    transform: [{ translateY: -90 }],
+  },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   container: {
     flex: 1,
     padding: 20,
   },
+  searchArea: {
+    gap: 12,
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 13,
+    marginBottom: 12,
   },
   resultCard: {
     flexDirection: 'row',
@@ -201,5 +304,23 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 12,
+  },
+  brandFooter: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  gradientBtn: {
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gradientBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '300',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
   },
 });

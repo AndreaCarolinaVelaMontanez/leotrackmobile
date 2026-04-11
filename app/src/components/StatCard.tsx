@@ -10,7 +10,7 @@ export function StatCard({ value, label }: StatCardProps) {
   const { theme } = useTheme();
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.bgSecondary }]}>
+    <View style={[styles.card, { backgroundColor: theme.bgSecondary, borderColor: theme.borderColor }]}>
       <Text style={[styles.value, { color: theme.textPrimary }]}>{value}</Text>
       <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>
     </View>
@@ -20,17 +20,23 @@ export function StatCard({ value, label }: StatCardProps) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: 12,
+    borderWidth: 1,
     padding: 20,
     paddingHorizontal: 16,
     alignItems: 'center',
     width: '48%',
   },
   value: {
-    fontSize: 32,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 30,
+    fontWeight: '300',
+    letterSpacing: 2,
+    marginBottom: 6,
   },
   label: {
-    fontSize: 13,
+    fontSize: 10,
+    fontWeight: '300',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
 });

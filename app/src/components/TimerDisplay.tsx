@@ -9,9 +9,10 @@ import { formatTimer } from '../utils/formatTime';
 interface TimerDisplayProps {
   userBookId: string;
   onStop: (startedAt: number, endedAt: number) => void;
+  disabled?: boolean;
 }
 
-export function TimerDisplay({ userBookId, onStop }: TimerDisplayProps) {
+export function TimerDisplay({ userBookId, onStop, disabled = false }: TimerDisplayProps) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const elapsed = useTimer();
@@ -61,7 +62,7 @@ export function TimerDisplay({ userBookId, onStop }: TimerDisplayProps) {
           <Button
             title={t('bookDetail.start')}
             onPress={handleStart}
-            disabled={isRunning && !isThisBook}
+            disabled={disabled || (isRunning && !isThisBook)}
           />
         ) : (
           <>

@@ -9,8 +9,8 @@ interface BadgeProps {
 
 const statusKeys: Record<ReadingStatus, string> = {
   READING: 'library.reading',
-  FINISHED: 'library.finished',
-  WISHLIST: 'library.wishlist',
+  FINISHED: 'library.finishedSingular',
+  WISHLIST: 'library.wishlistSingular',
   ABANDONED: 'library.abandoned',
 };
 

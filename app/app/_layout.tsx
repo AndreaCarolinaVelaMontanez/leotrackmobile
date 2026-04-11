@@ -5,8 +5,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { useAuthStore } from '../src/stores/authStore';
-import '../src/i18n';
-
+import { useSettingsStore } from '../src/stores/settingsStore';
+import i18n from '../src/i18n';
 // Keep splash screen visible until the app is ready
 SplashScreen.preventAutoHideAsync();
 
@@ -14,7 +14,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: 30000,
+      staleTime: 0,
     },
   },
 });
@@ -51,6 +51,11 @@ function AuthGuard() {
 
 function InnerLayout() {
   const { isDark } = useTheme();
+  const language = useSettingsStore((s) => s.language);
+
+  useEffect(() => {
+    i18n.changeLanguage(language.toLowerCase());
+  }, [language]);
 
   return (
     <>

@@ -13,3 +13,8 @@ export async function updateSettings(input: {
   const { data } = await client.patch('/settings', input);
   return data;
 }
+
+export async function updateProfile(name: string, country?: string): Promise<{ id: string; name: string; email: string; country?: string | null }> {
+  const { data } = await client.put('/settings/profile', { name, country });
+  return data;
+}

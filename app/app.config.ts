@@ -11,19 +11,30 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   newArchEnabled: true,
   scheme: 'leotrack',
   splash: {
-    image: './assets/splash-icon.png',
+    image: './assets/icon2.png',
     resizeMode: 'contain',
-    backgroundColor: '#EEEEF0',
+    backgroundColor: '#000000',
   },
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.leotrack.app',
+    ...(process.env.GOOGLE_IOS_REVERSED_CLIENT_ID
+      ? {
+          infoPlist: {
+            CFBundleURLTypes: [
+              {
+                CFBundleURLSchemes: [process.env.GOOGLE_IOS_REVERSED_CLIENT_ID],
+              },
+            ],
+          },
+        }
+      : {}),
   },
   android: {
     package: 'com.leotrack.app',
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#EEEEF0',
+      backgroundColor: '#6C63FF',
     },
     edgeToEdgeEnabled: true,
   },
@@ -31,8 +42,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: './assets/favicon.png',
     bundler: 'metro',
   },
-  plugins: ['expo-router', 'expo-localization', 'expo-font', 'expo-splash-screen'],
+  plugins: ['expo-router', 'expo-localization', 'expo-font', 'expo-splash-screen', 'expo-web-browser'],
   extra: {
     apiUrl: process.env.API_URL || 'https://leotrackmobile-production.up.railway.app',
+    googleAndroidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID ?? '',
+    googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID ?? '',
+    googleIosReversedClientId: process.env.GOOGLE_IOS_REVERSED_CLIENT_ID ?? '',
+    googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID ?? '',
+    eas: {
+      projectId: '859f4e79-38c2-4c54-a0ba-a5a9ba90afc4',
+    },
   },
 });
