@@ -13,8 +13,18 @@ export async function addToLibrary(req: Request, res: Response, next: NextFuncti
 export async function getLibrary(req: Request, res: Response, next: NextFunction) {
   try {
     const status = req.query.status as string | undefined;
-    const userBooks = await libraryService.getLibrary(req.userId!, status);
+    const year = req.query.year ? Number(req.query.year) : undefined;
+    const userBooks = await libraryService.getLibrary(req.userId!, status, year);
     res.json(userBooks);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getLibraryYears(req: Request, res: Response, next: NextFunction) {
+  try {
+    const years = await libraryService.getLibraryYears(req.userId!);
+    res.json({ years });
   } catch (error) {
     next(error);
   }

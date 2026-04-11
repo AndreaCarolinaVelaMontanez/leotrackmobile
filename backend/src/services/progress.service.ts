@@ -12,12 +12,12 @@ export async function createProgress(userId: string, input: CreateProgressInput)
     throw new AppError(404, 'Book not found in library');
   }
 
-  const log = await prisma.progressLog.create({
-    data: {
-      userBookId: input.userBookId,
-      pagesRead: input.pagesRead,
-    },
-  });
+  // Cap pagesRead to actual remaining pages so stats are never inflated
+  let actualPagesRead = input.pagesRead;
+  if (userBook.book.pageCount && userBook.book.pageCount > 0) {
+    const remaining = userBook.book.pageCount - userBook.currentPage;
+    actualPagesRead = Math.min(input.pagesRead, Math.max(0, remaining));
+  }
 
   // Update currentPage capped at pageCount
   let newPage = userBook.currentPage + input.pagesRead;
@@ -41,10 +41,25 @@ export async function createProgress(userId: string, input: CreateProgressInput)
     updateData.finishedAt = new Date();
   }
 
-  await prisma.userBook.update({
-    where: { id: input.userBookId },
-    data: updateData,
-  });
+  // DB-9: wrap log creation + userBook update in a transaction so currentPage never drifts
+  let log = null;
+  if (actualPagesRead > 0) {
+    const [createdLog] = await prisma.$transaction([
+      prisma.progressLog.create({
+        data: { userBookId: input.userBookId, pagesRead: actualPagesRead },
+      }),
+      prisma.userBook.update({
+        where: { id: input.userBookId },
+        data: updateData,
+      }),
+    ]);
+    log = createdLog;
+  } else {
+    await prisma.userBook.update({
+      where: { id: input.userBookId },
+      data: updateData,
+    });
+  }
 
   return log;
 }
@@ -68,5 +83,6 @@ export async function getProgressLogs(userId: string, userBookId: string, from?:
   return prisma.progressLog.findMany({
     where,
     orderBy: { createdAt: 'desc' },
+    take: 100,
   });
 }

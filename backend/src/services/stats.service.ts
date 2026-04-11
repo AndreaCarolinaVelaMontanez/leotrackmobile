@@ -1,18 +1,18 @@
 import { prisma } from '../utils/prisma';
 
 type Period = 'week' | 'month' | 'year';
+type WeekStart = 'monday' | 'sunday';
 
-function getDateRange(period: Period, ref?: string): { from: Date; to: Date } {
-  const now = ref ? new Date(ref) : new Date();
+function getDateRange(period: Period, ref?: string, weekStart: WeekStart = 'monday'): { from: Date; to: Date } {
+  const now = ref ? new Date(ref + 'T12:00:00') : new Date();
   const from = new Date(now);
   const to = new Date(now);
 
   switch (period) {
     case 'week': {
-      // ISO 8601: week starts on Monday
       const day = from.getDay();
-      const distToMonday = day === 0 ? 6 : day - 1;
-      from.setDate(from.getDate() - distToMonday);
+      const distToStart = weekStart === 'sunday' ? day : (day === 0 ? 6 : day - 1);
+      from.setDate(from.getDate() - distToStart);
       from.setHours(0, 0, 0, 0);
       to.setTime(from.getTime());
       to.setDate(to.getDate() + 6);
@@ -38,13 +38,18 @@ function getDateRange(period: Period, ref?: string): { from: Date; to: Date } {
   return { from, to };
 }
 
-export async function getSummary(userId: string, period: Period, ref?: string) {
-  const { from, to } = getDateRange(period, ref);
+export async function getSummary(userId: string, period: Period, ref?: string, weekStart: WeekStart = 'monday') {
+  const { from, to } = getDateRange(period, ref, weekStart);
 
-  // Get all userBooks for this user
+  // Get all userBooks for this user — select only fields used in calculations
   const userBooks = await prisma.userBook.findMany({
     where: { userId },
-    include: { book: true },
+    select: {
+      id: true,
+      status: true,
+      finishedAt: true,
+      book: { select: { category: true, pageCount: true } },
+    },
   });
 
   const userBookIds = userBooks.map((ub) => ub.id);
@@ -73,52 +78,137 @@ export async function getSummary(userId: string, period: Period, ref?: string) {
     (ub) => ub.status === 'FINISHED' && ub.finishedAt && ub.finishedAt >= from && ub.finishedAt <= to
   ).length;
 
-  // Unique days with sessions or progress
-  const uniqueDays = new Set([
-    ...sessions.map((s) => s.startedAt.toISOString().slice(0, 10)),
-    ...progressLogs.map((p) => p.createdAt.toISOString().slice(0, 10)),
-  ]).size;
+  // Active days in period (for weekly consistency tracker)
+  const activeDays = Array.from(new Set([
+    ...sessions.map((s) => {
+      const d = s.startedAt;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }),
+    ...progressLogs.map((p) => {
+      const d = p.createdAt;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }),
+  ]));
 
-  // Categories breakdown
+  // Categories by period
   const categoriesMap = new Map<string, number>();
-  for (const session of sessions) {
-    const ub = userBooks.find((u) => u.id === session.userBookId);
-    const category = ub?.book.category || 'Uncategorized';
-    categoriesMap.set(category, (categoriesMap.get(category) || 0) + session.durationMinutes);
+  if (period === 'year') {
+    // For year: use books finished in that year, weighted by pageCount
+    const finishedInRange = userBooks.filter(
+      (ub) => ub.status === 'FINISHED' && ub.finishedAt && ub.finishedAt >= from && ub.finishedAt <= to
+    );
+    for (const ub of finishedInRange) {
+      const category = ub.book.category || 'Other';
+      categoriesMap.set(category, (categoriesMap.get(category) || 0) + (ub.book.pageCount || 1));
+    }
+  } else {
+    // For week/month: use progress logs registered in range
+    for (const log of progressLogs) {
+      const ub = userBooks.find((u) => u.id === log.userBookId);
+      const category = ub?.book.category || 'Other';
+      categoriesMap.set(category, (categoriesMap.get(category) || 0) + log.pagesRead);
+    }
   }
-
   const categories = Array.from(categoriesMap.entries())
-    .map(([name, minutes]) => ({ name, minutes }))
-    .sort((a, b) => b.minutes - a.minutes);
+    .map(([name, pages]) => ({ name, pages }))
+    .sort((a, b) => b.pages - a.pages);
 
-  // Daily breakdown for chart
-  const dailyMap = new Map<string, { minutes: number; pages: number }>();
-  for (const session of sessions) {
-    const day = session.startedAt.toISOString().slice(0, 10);
-    const existing = dailyMap.get(day) || { minutes: 0, pages: 0 };
-    existing.minutes += session.durationMinutes;
-    dailyMap.set(day, existing);
-  }
-  for (const log of progressLogs) {
-    const day = log.createdAt.toISOString().slice(0, 10);
-    const existing = dailyMap.get(day) || { minutes: 0, pages: 0 };
-    existing.pages += log.pagesRead;
-    dailyMap.set(day, existing);
-  }
+  // allTime — year-filtered when period='year', truly all-time otherwise
+  let allTime: { finishedBooks: number; totalMinutes: number; totalPages: number; totalBooks: number; monthsElapsed: number };
 
-  const daily = Array.from(dailyMap.entries())
-    .map(([date, data]) => ({ date, ...data }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  if (period === 'year' || period === 'month') {
+    const now = new Date();
+    let monthsElapsed: number;
+    if (period === 'year') {
+      monthsElapsed = from.getFullYear() === now.getFullYear() ? now.getMonth() + 1 : 12;
+    } else {
+      // month view: always 1 month
+      monthsElapsed = 1;
+    }
+    allTime = {
+      totalBooks: completedBooks,
+      finishedBooks: completedBooks,
+      totalMinutes,
+      totalPages,
+      monthsElapsed,
+    };
+  } else {
+    // week: allTime not used (section hidden in frontend)
+    allTime = {
+      totalBooks: 0,
+      finishedBooks: 0,
+      totalMinutes: 0,
+      totalPages: 0,
+      monthsElapsed: 1,
+    };
+  }
 
   return {
     totalMinutes,
     totalPages,
     completedBooks,
-    daysActive: uniqueDays,
+    activeDays,
     categories,
-    daily,
     period,
-    from: from.toISOString(),
-    to: to.toISOString(),
+    from: `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`,
+    to: `${to.getFullYear()}-${String(to.getMonth() + 1).padStart(2, '0')}-${String(to.getDate()).padStart(2, '0')}`,
+    allTime,
   };
+}
+
+const MONTH_KEYS = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+];
+
+export async function getWeeklyActivity(userId: string, ref?: string) {
+  const now = ref ? new Date(ref + 'T12:00:00') : new Date();
+
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  prevMonthStart.setHours(0, 0, 0, 0);
+  const currMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  currMonthEnd.setHours(23, 59, 59, 999);
+
+  const userBooks = await prisma.userBook.findMany({
+    where: { userId },
+    select: { id: true },
+  });
+  const userBookIds = userBooks.map((ub) => ub.id);
+
+  const sessions = await prisma.readingSession.findMany({
+    where: {
+      userBookId: { in: userBookIds },
+      startedAt: { gte: prevMonthStart, lte: currMonthEnd },
+    },
+  });
+
+  const months = [
+    { year: prevMonthStart.getFullYear(), month: prevMonthStart.getMonth() },
+    { year: now.getFullYear(), month: now.getMonth() },
+  ];
+
+  const result = months.map(({ year, month }) => {
+    const weeks = [
+      { label: 'S1', fromDay: 1, toDay: 7, minutes: 0 },
+      { label: 'S2', fromDay: 8, toDay: 14, minutes: 0 },
+      { label: 'S3', fromDay: 15, toDay: 21, minutes: 0 },
+      { label: 'S4', fromDay: 22, toDay: 31, minutes: 0 },
+    ];
+
+    for (const session of sessions) {
+      const d = session.startedAt;
+      if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+      const day = d.getDate();
+      const week = weeks.find((w) => day >= w.fromDay && day <= w.toDay);
+      if (week) week.minutes += session.durationMinutes;
+    }
+
+    return {
+      monthKey: MONTH_KEYS[month],
+      year,
+      weeks: weeks.map(({ label, minutes }) => ({ label, minutes })),
+    };
+  });
+
+  return result;
 }

@@ -1,6 +1,6 @@
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
-import { UpdateSettingsInput } from '../validators/settings';
+import { UpdateSettingsInput, UpdateProfileInput } from '../validators/settings';
 
 export async function getSettings(userId: string) {
   const settings = await prisma.userSettings.findUnique({
@@ -21,4 +21,14 @@ export async function updateSettings(userId: string, input: UpdateSettingsInput)
   });
 
   return settings;
+}
+
+export async function updateProfile(userId: string, input: UpdateProfileInput) {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { name: input.name, country: input.country },
+    select: { id: true, name: true, email: true, country: true, createdAt: true },
+  });
+
+  return user;
 }

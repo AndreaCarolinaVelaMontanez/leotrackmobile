@@ -7,4 +7,4 @@ dist/
 # Internal files - not part of the product
 agents/
 scripts/
-book-tracker-mockup.html
+*.html

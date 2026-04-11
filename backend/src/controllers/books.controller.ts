@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as booksService from '../services/books.service';
 import * as libraryService from '../services/library.service';
 import { AppError } from '../middleware/errorHandler';
+import { prisma } from '../utils/prisma';
 
 export async function search(req: Request, res: Response, next: NextFunction) {
   try {
@@ -9,8 +10,13 @@ export async function search(req: Request, res: Response, next: NextFunction) {
     if (!q) {
       throw new AppError(400, 'Search query is required');
     }
-    const books = await booksService.search(q);
-    res.json(books);
+    try {
+      const books = await booksService.search(q);
+      res.json(books);
+    } catch (error) {
+      console.error('Google Books search failed:', error);
+      throw new AppError(502, 'Google Books search is temporarily unavailable');
+    }
   } catch (error) {
     next(error);
   }
@@ -18,16 +24,21 @@ export async function search(req: Request, res: Response, next: NextFunction) {
 
 export async function createManual(req: Request, res: Response, next: NextFunction) {
   try {
-    const { status, ...bookData } = req.body;
+    const { status, finishedYear, ...bookData } = req.body;
     const book = await booksService.createManual(bookData);
 
-    // Also add to user's library
-    const userBook = await libraryService.addToLibrary(req.userId!, {
-      bookId: book.id,
-      status: status || 'WISHLIST',
-    });
-
-    res.status(201).json(userBook);
+    // Add to user's library — on failure, remove the orphan book
+    try {
+      const userBook = await libraryService.addToLibrary(req.userId!, {
+        bookId: book.id,
+        status: status || 'WISHLIST',
+        finishedYear,
+      });
+      res.status(201).json(userBook);
+    } catch (addError) {
+      await prisma.book.delete({ where: { id: book.id } }).catch(() => {});
+      throw addError;
+    }
   } catch (error) {
     next(error);
   }

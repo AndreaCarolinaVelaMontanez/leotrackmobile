@@ -18,3 +18,12 @@ export async function updateSettings(req: Request, res: Response, next: NextFunc
     next(error);
   }
 }
+
+export async function updateProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = await settingsService.updateProfile(req.userId!, req.body);
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+}

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import authRoutes from './routes/auth.routes';
 import booksRoutes from './routes/books.routes';
 import libraryRoutes from './routes/library.routes';
@@ -7,9 +8,14 @@ import settingsRoutes from './routes/settings.routes';
 import progressRoutes from './routes/progress.routes';
 import sessionsRoutes from './routes/sessions.routes';
 import statsRoutes from './routes/stats.routes';
+import exploreRoutes from './routes/explore.routes';
+import configRoutes from './routes/config.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
+
+app.set('trust proxy', 1);
+app.use(helmet());
 
 const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = (process.env.CORS_ORIGINS ?? '')
@@ -52,6 +58,8 @@ app.use('/settings', settingsRoutes);
 app.use('/progress', progressRoutes);
 app.use('/sessions', sessionsRoutes);
 app.use('/stats', statsRoutes);
+app.use('/explore', exploreRoutes);
+app.use('/config', configRoutes);
 
 app.use(errorHandler);
 

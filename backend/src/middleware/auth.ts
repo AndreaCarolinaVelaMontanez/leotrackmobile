@@ -26,7 +26,12 @@ export async function authMiddleware(
       where: { token },
     });
 
-    if (!session || session.expiresAt < new Date()) {
+    if (!session) {
+      throw new AppError(401, 'Invalid or expired token');
+    }
+
+    if (session.expiresAt < new Date()) {
+      prisma.authSession.delete({ where: { token } }).catch(() => {});
       throw new AppError(401, 'Invalid or expired token');
     }
 

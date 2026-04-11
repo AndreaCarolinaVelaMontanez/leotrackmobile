@@ -18,18 +18,23 @@ export async function createSession(userId: string, input: CreateSessionInput) {
     throw new AppError(400, 'End time must be after start time');
   }
 
+  const maxAllowedDate = new Date();
+  maxAllowedDate.setFullYear(maxAllowedDate.getFullYear() + 5);
+  if (endedAt > maxAllowedDate) {
+    throw new AppError(400, 'Session date is too far in the future');
+  }
+
   const durationMinutes = Math.round((endedAt.getTime() - startedAt.getTime()) / 60000);
 
-  const session = await prisma.readingSession.create({
-    data: {
-      userBookId: input.userBookId,
-      startedAt,
-      endedAt,
-      durationMinutes,
-    },
-  });
+  if (durationMinutes < 1) {
+    throw new AppError(400, 'Session too short to record');
+  }
 
-  // Auto-start: if book is in WISHLIST, transition to READING
+  if (durationMinutes > 1440) {
+    throw new AppError(400, 'Session duration cannot exceed 24 hours');
+  }
+
+  // DB-9: wrap create + update in a transaction so totalMinutes never drifts
   const updateData: any = { totalMinutes: { increment: durationMinutes } };
   if (userBook.status === 'WISHLIST') {
     updateData.status = 'READING';
@@ -38,10 +43,20 @@ export async function createSession(userId: string, input: CreateSessionInput) {
     }
   }
 
-  await prisma.userBook.update({
-    where: { id: input.userBookId },
-    data: updateData,
-  });
+  const [session] = await prisma.$transaction([
+    prisma.readingSession.create({
+      data: {
+        userBookId: input.userBookId,
+        startedAt,
+        endedAt,
+        durationMinutes,
+      },
+    }),
+    prisma.userBook.update({
+      where: { id: input.userBookId },
+      data: updateData,
+    }),
+  ]);
 
   return session;
 }
@@ -65,5 +80,6 @@ export async function getSessions(userId: string, userBookId: string, from?: str
   return prisma.readingSession.findMany({
     where,
     orderBy: { startedAt: 'desc' },
+    take: 100,
   });
 }

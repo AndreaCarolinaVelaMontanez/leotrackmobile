@@ -28,12 +28,24 @@ export interface NormalizedBook {
 
 function httpsGet(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const req = https.get(url, (res) => {
       let data = '';
       res.on('data', (chunk) => (data += chunk));
-      res.on('end', () => resolve(data));
+      res.on('end', () => {
+        const status = res.statusCode ?? 0;
+        if (status < 200 || status >= 300) {
+          reject(new Error(`Google Books HTTP ${status}: ${data.slice(0, 200)}`));
+          return;
+        }
+        resolve(data);
+      });
       res.on('error', reject);
-    }).on('error', reject);
+    });
+
+    req.setTimeout(10000, () => {
+      req.destroy(new Error('Google Books request timeout'));
+    });
+    req.on('error', reject);
   });
 }
 

@@ -7,5 +7,6 @@ import { statsQuerySchema } from '../validators/queryParams';
 const router = Router();
 
 router.get('/', authMiddleware, validateQuery(statsQuerySchema), statsController.getSummary);
+router.get('/weekly-activity', authMiddleware, statsController.getWeeklyActivity);
 
 export default router;
