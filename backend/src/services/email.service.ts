@@ -57,6 +57,7 @@ export async function sendPasswordResetEmail(
   const appScheme = process.env.APP_SCHEME ?? 'leotrack';
   const resetLink = `${appScheme}://reset-password?token=${token}`;
 
+  console.log(`[DEBUG] RESEND_API_KEY set: ${!!process.env.RESEND_API_KEY}, length: ${process.env.RESEND_API_KEY?.length ?? 0}`);
   if (!process.env.RESEND_API_KEY) {
     console.log('─── PASSWORD RESET EMAIL (dev mode — no email sent) ───');
     console.log(`To:    ${to}`);
