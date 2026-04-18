@@ -1,7 +1,7 @@
 export const lightTheme = {
-  bgPrimary: '#999DA8',
-  bgSecondary: '#8D919C',
-  bgTertiary: '#828794',
+  bgPrimary: '#FFFFFF',
+  bgSecondary: '#F7F4FA',
+  bgTertiary: '#EDE8F5',
   textPrimary: '#1A1A1A',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
