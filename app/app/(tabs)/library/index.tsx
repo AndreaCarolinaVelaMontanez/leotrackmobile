@@ -42,7 +42,7 @@ export default function LibraryScreen() {
   const yearForQuery = (status === 'READING' || status === 'WISHLIST') ? undefined : selectedYear;
   const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useLibraryList(status, yearForQuery);
   const { data: availableYears = [] } = useLibraryYears();
-  const books = data?.pages.flatMap((p) => p.books) ?? [];
+  const books = data?.pages.flatMap((p) => Array.isArray(p) ? p : (p.books ?? [])) ?? [];
 
   useFocusEffect(
     useCallback(() => {
