@@ -3,7 +3,7 @@ import * as libraryApi from '../api/library';
 
 export function useLibraryList(status?: string, year?: number) {
   return useInfiniteQuery({
-    queryKey: ['library', status, year],
+    queryKey: ['library', 'pages', status, year],
     queryFn: ({ pageParam }) => libraryApi.getLibrary(status, year, pageParam),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.page + 1 : undefined,
