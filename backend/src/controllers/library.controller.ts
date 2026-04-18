@@ -14,10 +14,12 @@ export async function getLibrary(req: Request, res: Response, next: NextFunction
   try {
     const status = req.query.status as string | undefined;
     const year = req.query.year ? Number(req.query.year) : undefined;
-    const page = req.query.page ? Number(req.query.page) : 1;
+    const isPaginated = req.query.page !== undefined;
+    const page = isPaginated ? Number(req.query.page) : 1;
     const limit = req.query.limit ? Number(req.query.limit) : 15;
     const result = await libraryService.getLibrary(req.userId!, status, year, page, limit);
-    res.json(result);
+    // Old APK expects a flat array — return paginated format only when page param is present
+    res.json(isPaginated ? result : result.books);
   } catch (error) {
     next(error);
   }
