@@ -60,7 +60,7 @@ export async function addToLibrary(userId: string, input: AddToLibraryInput) {
   return userBook;
 }
 
-export async function getLibrary(userId: string, status?: string, year?: number) {
+export async function getLibrary(userId: string, status?: string, year?: number, page = 1, limit = 15) {
   const where: any = { userId };
   if (status) {
     where.status = status as ReadingStatus;
@@ -74,7 +74,6 @@ export async function getLibrary(userId: string, status?: string, year?: number)
     } else if (status) {
       where.createdAt = { gte: start, lt: end };
     } else {
-      // ALL: match books finished that year OR added that year
       where.OR = [
         { finishedAt: { gte: start, lt: end } },
         { AND: [{ finishedAt: null }, { createdAt: { gte: start, lt: end } }] },
@@ -82,13 +81,20 @@ export async function getLibrary(userId: string, status?: string, year?: number)
     }
   }
 
-  const userBooks = await prisma.userBook.findMany({
-    where,
-    include: { book: true, bookTags: true },
-    orderBy: { updatedAt: 'desc' },
-  });
+  const skip = (page - 1) * limit;
 
-  return userBooks;
+  const [books, total] = await Promise.all([
+    prisma.userBook.findMany({
+      where,
+      include: { book: true, bookTags: true },
+      orderBy: { updatedAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.userBook.count({ where }),
+  ]);
+
+  return { books, total, page, limit, hasMore: skip + books.length < total };
 }
 
 export async function getLibraryYears(userId: string): Promise<number[]> {

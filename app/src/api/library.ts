@@ -1,8 +1,16 @@
 import client from './client';
 import { UserBook, UserBookDetail } from '../types';
 
-export async function getLibrary(status?: string, year?: number): Promise<UserBook[]> {
-  const params: any = {};
+export interface LibraryPage {
+  books: UserBook[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+export async function getLibrary(status?: string, year?: number, page = 1): Promise<LibraryPage> {
+  const params: any = { page, limit: 15 };
   if (status) params.status = status;
   if (year) params.year = year;
   const { data } = await client.get('/library', { params });

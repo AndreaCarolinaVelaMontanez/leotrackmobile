@@ -40,8 +40,9 @@ export default function LibraryScreen() {
 
   const status = STATUS_FILTERS[filterIndex];
   const yearForQuery = (status === 'READING' || status === 'WISHLIST') ? undefined : selectedYear;
-  const { data: books, isLoading, refetch, isRefetching } = useLibraryList(status, yearForQuery);
+  const { data, isLoading, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useLibraryList(status, yearForQuery);
   const { data: availableYears = [] } = useLibraryYears();
+  const books = data?.pages.flatMap((p) => p.books) ?? [];
 
   useFocusEffect(
     useCallback(() => {
@@ -105,20 +106,20 @@ export default function LibraryScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={theme.accentPrimary} />
       ) : (
         <FlatList
-          data={books ?? []}
+          data={books}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <BookCard
               userBook={item}
-              onPress={() =>
-                router.push(`/(tabs)/library/${item.id}`)
-              }
+              onPress={() => router.push(`/(tabs)/library/${item.id}`)}
             />
           )}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
           }
+          onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
+          onEndReachedThreshold={0.3}
           ListEmptyComponent={
             <EmptyState
               icon="book-outline"
@@ -129,19 +130,23 @@ export default function LibraryScreen() {
             />
           }
           ListFooterComponent={
-            <View style={styles.brandFooter}>
-              <Svg height={22} width={140}>
-                <Defs>
-                  <SvgGradient id="greenGradLib" x1="0" y1="0" x2="1" y2="0">
-                    <Stop offset="0" stopColor="#1b5e20" />
-                    <Stop offset="1" stopColor="#81c784" />
-                  </SvgGradient>
-                </Defs>
-                <SvgText fill="url(#greenGradLib)" fontSize="11" fontWeight="bold" x="70" y="16" textAnchor="middle" letterSpacing="1">
-                  By MountLion
-                </SvgText>
-              </Svg>
-            </View>
+            isFetchingNextPage ? (
+              <ActivityIndicator style={{ marginVertical: 16 }} color={theme.accentPrimary} />
+            ) : (
+              <View style={styles.brandFooter}>
+                <Svg height={22} width={140}>
+                  <Defs>
+                    <SvgGradient id="greenGradLib" x1="0" y1="0" x2="1" y2="0">
+                      <Stop offset="0" stopColor="#1b5e20" />
+                      <Stop offset="1" stopColor="#81c784" />
+                    </SvgGradient>
+                  </Defs>
+                  <SvgText fill="url(#greenGradLib)" fontSize="11" fontWeight="bold" x="70" y="16" textAnchor="middle" letterSpacing="1">
+                    By MountLion
+                  </SvgText>
+                </Svg>
+              </View>
+            )
           }
         />
       )}

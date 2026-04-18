@@ -1,10 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as libraryApi from '../api/library';
 
 export function useLibraryList(status?: string, year?: number) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['library', status, year],
-    queryFn: () => libraryApi.getLibrary(status, year),
+    queryFn: ({ pageParam }) => libraryApi.getLibrary(status, year, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.page + 1 : undefined,
   });
 }
 

@@ -14,8 +14,10 @@ export async function getLibrary(req: Request, res: Response, next: NextFunction
   try {
     const status = req.query.status as string | undefined;
     const year = req.query.year ? Number(req.query.year) : undefined;
-    const userBooks = await libraryService.getLibrary(req.userId!, status, year);
-    res.json(userBooks);
+    const page = req.query.page ? Number(req.query.page) : 1;
+    const limit = req.query.limit ? Number(req.query.limit) : 15;
+    const result = await libraryService.getLibrary(req.userId!, status, year, page, limit);
+    res.json(result);
   } catch (error) {
     next(error);
   }
