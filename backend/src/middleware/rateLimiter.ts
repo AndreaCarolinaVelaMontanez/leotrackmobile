@@ -8,6 +8,15 @@ export const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+export const loginEmailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => (req.body?.email ?? '').toLowerCase().trim() || (req.ip ?? 'unknown'),
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,

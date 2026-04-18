@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
 import { authMiddleware } from '../middleware/auth';
 import { validateBody } from '../middleware/validateBody';
-import { loginLimiter, registerLimiter, resetPasswordLimiter } from '../middleware/rateLimiter';
+import { loginLimiter, loginEmailLimiter, registerLimiter, resetPasswordLimiter } from '../middleware/rateLimiter';
 import {
   registerSchema,
   loginSchema,
@@ -19,7 +19,7 @@ router.post('/register', registerLimiter, validateBody(registerSchema), authCont
 router.post('/verify-email', registerLimiter, validateBody(verifyEmailSchema), authController.verifyEmail);
 router.post('/resend-verification', registerLimiter, validateBody(resendVerificationSchema), authController.resendVerification);
 router.post('/google', loginLimiter, validateBody(googleTokenSchema), authController.googleLogin);
-router.post('/login', loginLimiter, validateBody(loginSchema), authController.login);
+router.post('/login', loginLimiter, loginEmailLimiter, validateBody(loginSchema), authController.login);
 router.post('/logout', authMiddleware, authController.logout);
 router.get('/me', authMiddleware, authController.getMe);
 router.post('/forgot-password', resetPasswordLimiter, validateBody(forgotPasswordSchema), authController.forgotPassword);
