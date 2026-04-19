@@ -44,7 +44,9 @@
     "pages": "pages",
     "readingSingular": "Reading",
     "finishedSingular": "Finished",
-    "wishlistSingular": "Wishlist"
+    "wishlistSingular": "Wishlist",
+    "pageOf": "Page {{current}} of {{total}}",
+    "showingRange": "Showing {{from}}-{{to}} of {{total}}"
   },
   "search": {
     "title": "Search Books",

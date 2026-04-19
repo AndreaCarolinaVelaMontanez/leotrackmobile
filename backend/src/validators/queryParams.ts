@@ -5,6 +5,8 @@ const isoDateRegex = /^\d{4}-\d{2}-\d{2}/;
 export const libraryQuerySchema = z.object({
   status: z.enum(['READING', 'FINISHED', 'WISHLIST', 'ABANDONED']).optional(),
   year: z.coerce.number().int().min(2000).max(2100).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
 export const statsQuerySchema = z.object({

@@ -60,7 +60,7 @@ export async function addToLibrary(userId: string, input: AddToLibraryInput) {
   return userBook;
 }
 
-export async function getLibrary(userId: string, status?: string, year?: number, page = 1, limit = 15) {
+export async function getLibrary(userId: string, status?: string, year?: number, page = 1, limit = 10) {
   const where: any = { userId };
   if (status) {
     where.status = status as ReadingStatus;
@@ -87,7 +87,7 @@ export async function getLibrary(userId: string, status?: string, year?: number,
     prisma.userBook.findMany({
       where,
       include: { book: true, bookTags: true },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
       skip,
       take: limit,
     }),

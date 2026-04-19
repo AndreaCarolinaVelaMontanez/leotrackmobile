@@ -9,8 +9,8 @@ export interface LibraryPage {
   hasMore: boolean;
 }
 
-export async function getLibrary(status?: string, year?: number, page = 1): Promise<LibraryPage> {
-  const params: any = { page, limit: 15 };
+export async function getLibrary(status?: string, year?: number, page = 1, limit = 10): Promise<LibraryPage> {
+  const params: any = { page, limit };
   if (status) params.status = status;
   if (year) params.year = year;
   const { data } = await client.get('/library', { params });

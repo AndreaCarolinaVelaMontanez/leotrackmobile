@@ -12,6 +12,10 @@
       "ios": {
         "simulator": false,
         "distribution": "internal"
+      },
+      "env": {
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "248294176537-t8a30drgb2s6ciea6spbskau65i0o3ek.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "248294176537-9qd024q41pg5veofvulj8ol2g4are3lj.apps.googleusercontent.com"
       }
     },
     "production": {
@@ -20,6 +24,10 @@
       },
       "ios": {
         "distribution": "store"
+      },
+      "env": {
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "248294176537-t8a30drgb2s6ciea6spbskau65i0o3ek.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "248294176537-9qd024q41pg5veofvulj8ol2g4are3lj.apps.googleusercontent.com"
       }
     }
   }

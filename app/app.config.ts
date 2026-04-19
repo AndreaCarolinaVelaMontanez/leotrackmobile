@@ -18,12 +18,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.leotrack.app',
-    ...(process.env.GOOGLE_IOS_REVERSED_CLIENT_ID
+    ...(process.env.EXPO_PUBLIC_GOOGLE_IOS_REVERSED_CLIENT_ID
       ? {
           infoPlist: {
             CFBundleURLTypes: [
               {
-                CFBundleURLSchemes: [process.env.GOOGLE_IOS_REVERSED_CLIENT_ID],
+                CFBundleURLSchemes: [process.env.EXPO_PUBLIC_GOOGLE_IOS_REVERSED_CLIENT_ID],
               },
             ],
           },
@@ -45,10 +45,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: ['expo-router', 'expo-localization', 'expo-font', 'expo-splash-screen', 'expo-web-browser'],
   extra: {
     apiUrl: process.env.API_URL || 'https://leotrackmobile-production.up.railway.app',
-    googleAndroidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID ?? '',
-    googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID ?? '',
-    googleIosReversedClientId: process.env.GOOGLE_IOS_REVERSED_CLIENT_ID ?? '',
-    googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID ?? '',
+    googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '',
+    googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
+    googleIosReversedClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_REVERSED_CLIENT_ID ?? '',
+    googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
     eas: {
       projectId: '859f4e79-38c2-4c54-a0ba-a5a9ba90afc4',
     },

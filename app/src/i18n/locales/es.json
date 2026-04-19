@@ -44,7 +44,9 @@
     "pages": "paginas",
     "readingSingular": "Leyendo",
     "finishedSingular": "Terminado",
-    "wishlistSingular": "Pendiente"
+    "wishlistSingular": "Pendiente",
+    "pageOf": "Pagina {{current}} de {{total}}",
+    "showingRange": "Mostrando {{from}}-{{to}} de {{total}}"
   },
   "search": {
     "title": "Buscar Libros",

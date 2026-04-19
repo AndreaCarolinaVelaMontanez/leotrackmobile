@@ -13,9 +13,9 @@ export default function MyRecommendationsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const { data: finishedBooks, isLoading } = useLibraryList('FINISHED');
+  const { data, isLoading } = useLibraryList('FINISHED', undefined, 1, 100);
 
-  const rated = (finishedBooks ?? []).filter((b) => b.recommended === true) as (UserBook & { recommended: boolean })[];
+  const rated = (data?.books ?? []).filter((b) => b.recommended === true) as (UserBook & { recommended: boolean })[];
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: theme.bgPrimary }]} edges={['top']}>

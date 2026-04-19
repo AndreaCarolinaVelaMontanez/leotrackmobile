@@ -26,7 +26,7 @@ export async function resendVerification(userId: string): Promise<void> {
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const { data } = await client.post('/auth/login', { email, password });
+  const { data } = await client.post('/auth/login', { email: email.trim(), password });
   return data;
 }
 
